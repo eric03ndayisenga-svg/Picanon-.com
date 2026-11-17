@@ -1,0 +1,7 @@
+{
+  "name": "TeraVolt Rwanda",
+  "description": "Picanon – Imyambaro n'Inkweto VIP Rwanda. Injira buri munsi wakire inyungu zawe, ubonereho serivisi zihuse za MTN MoMo na Airtel Money.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

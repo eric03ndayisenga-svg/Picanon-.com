@@ -1,0 +1,594 @@
+{
+  "entities": {
+    "AdminMember": {
+      "title": "AdminMember",
+      "description": "Authorized platform administrator document keyed by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 128
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 24,
+          "pattern": "^[0-9+\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"],
+          "maxLength": 16
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "role", "createdAt", "updatedAt"]
+    },
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Registered Picanon member account synced for cross-device access and Admin oversight.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 9,
+          "maxLength": 24,
+          "pattern": "^[0-9+\\-]+$"
+        },
+        "balance": {
+          "type": "number"
+        },
+        "totalIncome": {
+          "type": "number"
+        },
+        "totalWithdrawn": {
+          "type": "number"
+        },
+        "totalRecharged": {
+          "type": "number"
+        },
+        "vipLevel": {
+          "type": "integer"
+        },
+        "referralCode": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "referredBy": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "isAdmin": {
+          "type": "boolean"
+        },
+        "isBanned": {
+          "type": "boolean"
+        },
+        "teamCountLevel1": {
+          "type": "integer"
+        },
+        "teamCountLevel2": {
+          "type": "integer"
+        },
+        "teamCountLevel3": {
+          "type": "integer"
+        },
+        "teamCommission": {
+          "type": "number"
+        },
+        "freeSpins": {
+          "type": "integer"
+        },
+        "hasClaimedWelcomeBonus": {
+          "type": "boolean"
+        },
+        "lastCheckInDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "payoutMethod": {
+          "type": "string",
+          "enum": ["mtn", "airtel"],
+          "maxLength": 16
+        },
+        "payoutPhone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "payoutName": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAtText": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "phone",
+        "balance",
+        "totalIncome",
+        "totalWithdrawn",
+        "totalRecharged",
+        "vipLevel",
+        "referralCode",
+        "isAdmin",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RechargeRequest": {
+      "title": "RechargeRequest",
+      "description": "Deposit request submitted by a member for admin verification.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userPhone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "amount": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["mtn", "airtel"],
+          "maxLength": 16
+        },
+        "transactionId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "senderPhone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "maxLength": 16
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "userId",
+        "userPhone",
+        "amount",
+        "paymentMethod",
+        "transactionId",
+        "senderPhone",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WithdrawRequest": {
+      "title": "WithdrawRequest",
+      "description": "Withdrawal payout request submitted by a member.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userPhone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "amount": {
+          "type": "number"
+        },
+        "fee": {
+          "type": "number"
+        },
+        "netAmount": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["mtn", "airtel"],
+          "maxLength": 16
+        },
+        "recipientPhone": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "recipientName": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "maxLength": 16
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "userId",
+        "userPhone",
+        "amount",
+        "fee",
+        "netAmount",
+        "paymentMethod",
+        "recipientPhone",
+        "recipientName",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "InvestmentRecord": {
+      "title": "InvestmentRecord",
+      "description": "Active or completed VIP product investment owned by a user.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "productId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "vipLevel": {
+          "type": "integer"
+        },
+        "amountInvested": {
+          "type": "number"
+        },
+        "dailyIncome": {
+          "type": "number"
+        },
+        "cycleDays": {
+          "type": "integer"
+        },
+        "daysRemaining": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "completed"],
+          "maxLength": 16
+        },
+        "productName": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "totalIncomeEarned": {
+          "type": "number"
+        },
+        "datePurchased": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "lastClaimAt": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "userId",
+        "productId",
+        "vipLevel",
+        "amountInvested",
+        "dailyIncome",
+        "cycleDays",
+        "daysRemaining",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RedemptionCode": {
+      "title": "RedemptionCode",
+      "description": "Official Picanon company gift voucher managed by Admin.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "code": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "amount": {
+          "type": "number"
+        },
+        "maxUses": {
+          "type": "integer"
+        },
+        "usedCount": {
+          "type": "integer"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "code", "amount", "usedCount", "isActive", "createdAt", "updatedAt"]
+    },
+    "AdminSettings": {
+      "title": "AdminSettings",
+      "description": "Global platform configuration including MoMo/Airtel payment numbers and limits.",
+      "type": "object",
+      "properties": {
+        "mtnNumber": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "airtelNumber": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "minDeposit": {
+          "type": "number"
+        },
+        "minWithdrawal": {
+          "type": "number"
+        },
+        "withdrawalFeePercent": {
+          "type": "number"
+        },
+        "broadcastMessage": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "telegramGroup": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "telegramSupport": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "telegramChannel": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "whatsappSupport": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "mtnNumber",
+        "airtelNumber",
+        "minDeposit",
+        "minWithdrawal",
+        "withdrawalFeePercent",
+        "broadcastMessage",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TransactionRecord": {
+      "title": "TransactionRecord",
+      "description": "Immutable financial ledger record for deposits, withdrawals, VIP earnings, and commissions.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "type": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "amount": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["completed", "pending", "rejected"],
+          "maxLength": 16
+        },
+        "timestampText": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "userId",
+        "type",
+        "amount",
+        "status",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminMember" },
+      "description": "Role documents granting admin access to verified admins."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "PII-isolated member accounts readable only by the owning user or an admin."
+    },
+    "/recharges/{rechargeId}": {
+      "schema": { "$ref": "#/entities/RechargeRequest" },
+      "description": "Deposit queue managed by admins with terminal state locking."
+    },
+    "/withdrawals/{withdrawId}": {
+      "schema": { "$ref": "#/entities/WithdrawRequest" },
+      "description": "Withdrawal payout queue managed by admins with terminal state locking."
+    },
+    "/investments/{investmentId}": {
+      "schema": { "$ref": "#/entities/InvestmentRecord" },
+      "description": "Active and completed VIP package investments per member."
+    },
+    "/redemptionCodes/{codeId}": {
+      "schema": { "$ref": "#/entities/RedemptionCode" },
+      "description": "Company gift voucher codes created and toggled by admins."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/AdminSettings" },
+      "description": "Platform MoMo/Airtel numbers, fee rates, and broadcast announcements."
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/TransactionRecord" },
+      "description": "Member transaction ledger entries synced for cross-device audit and recovery."
+    }
+  }
+}

@@ -1,0 +1,446 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 0: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Shared Primitives (Phase 3)
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isAdminEmail() {
+      return isSignedIn() && request.auth.token.email == 'eric03ndayisenga@gmail.com';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'eric03ndayisenga@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isOwner(ownerUid) {
+      return isSignedIn() && ownerUid is string && ownerUid == request.auth.uid;
+    }
+
+    // Validation Blueprints (Pillar 2 - Anti-Update-Gap)
+    function isValidAdminMember(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'phone', 'role', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 128
+        && data.role is string && data.role == 'admin'
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 24))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserAccount(data) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'phone', 'balance', 'totalIncome',
+          'totalWithdrawn', 'totalRecharged', 'vipLevel',
+          'referralCode', 'isAdmin', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'phone', 'balance', 'totalIncome',
+          'totalWithdrawn', 'totalRecharged', 'vipLevel',
+          'referralCode', 'referredBy', 'isAdmin', 'isBanned',
+          'teamCountLevel1', 'teamCountLevel2', 'teamCountLevel3',
+          'teamCommission', 'freeSpins', 'hasClaimedWelcomeBonus',
+          'lastCheckInDate', 'payoutMethod', 'payoutPhone', 'payoutName',
+          'createdAtText', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && data.phone is string && data.phone.size() >= 9 && data.phone.size() <= 24 && data.phone.matches('^[0-9+\\-]+$')
+        && data.balance is number && data.balance >= 0
+        && data.totalIncome is number && data.totalIncome >= 0
+        && data.totalWithdrawn is number && data.totalWithdrawn >= 0
+        && data.totalRecharged is number && data.totalRecharged >= 0
+        && data.vipLevel is int && data.vipLevel >= 0 && data.vipLevel <= 10
+        && data.referralCode is string && data.referralCode.size() >= 3 && data.referralCode.size() <= 32
+        && (!('referredBy' in data) || (data.referredBy is string && data.referredBy.size() <= 32))
+        && data.isAdmin is bool
+        && (!('isBanned' in data) || data.isBanned is bool)
+        && (!('teamCountLevel1' in data) || (data.teamCountLevel1 is int && data.teamCountLevel1 >= 0))
+        && (!('teamCountLevel2' in data) || (data.teamCountLevel2 is int && data.teamCountLevel2 >= 0))
+        && (!('teamCountLevel3' in data) || (data.teamCountLevel3 is int && data.teamCountLevel3 >= 0))
+        && (!('teamCommission' in data) || (data.teamCommission is number && data.teamCommission >= 0))
+        && (!('freeSpins' in data) || (data.freeSpins is int && data.freeSpins >= 0))
+        && (!('hasClaimedWelcomeBonus' in data) || data.hasClaimedWelcomeBonus is bool)
+        && (!('lastCheckInDate' in data) || (data.lastCheckInDate is string && data.lastCheckInDate.size() <= 32))
+        && (!('payoutMethod' in data) || (data.payoutMethod is string && data.payoutMethod in ['mtn', 'airtel']))
+        && (!('payoutPhone' in data) || (data.payoutPhone is string && data.payoutPhone.size() <= 24))
+        && (!('payoutName' in data) || (data.payoutName is string && data.payoutName.size() <= 64))
+        && (!('createdAtText' in data) || (data.createdAtText is string && data.createdAtText.size() <= 32))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidRechargeRequest(data) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'userId', 'userPhone', 'amount',
+          'paymentMethod', 'transactionId', 'senderPhone',
+          'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'userId', 'userPhone', 'amount',
+          'paymentMethod', 'transactionId', 'senderPhone',
+          'status', 'note', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && isValidId(data.userId)
+        && data.userPhone is string && data.userPhone.size() >= 9 && data.userPhone.size() <= 24
+        && data.amount is number && data.amount >= 1000
+        && data.paymentMethod is string && data.paymentMethod in ['mtn', 'airtel']
+        && data.transactionId is string && data.transactionId.size() >= 2 && data.transactionId.size() <= 64
+        && data.senderPhone is string && data.senderPhone.size() >= 9 && data.senderPhone.size() <= 24
+        && data.status is string && data.status in ['pending', 'approved', 'rejected']
+        && (!('note' in data) || (data.note is string && data.note.size() <= 200))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWithdrawRequest(data) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'userId', 'userPhone', 'amount',
+          'fee', 'netAmount', 'paymentMethod', 'recipientPhone',
+          'recipientName', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'userId', 'userPhone', 'amount',
+          'fee', 'netAmount', 'paymentMethod', 'recipientPhone',
+          'recipientName', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && isValidId(data.userId)
+        && data.userPhone is string && data.userPhone.size() >= 9 && data.userPhone.size() <= 24
+        && data.amount is number && data.amount >= 1000
+        && data.fee is number && data.fee >= 0
+        && data.netAmount is number && data.netAmount >= 0
+        && data.paymentMethod is string && data.paymentMethod in ['mtn', 'airtel']
+        && data.recipientPhone is string && data.recipientPhone.size() >= 9 && data.recipientPhone.size() <= 24
+        && data.recipientName is string && data.recipientName.size() >= 1 && data.recipientName.size() <= 64
+        && data.status is string && data.status in ['pending', 'approved', 'rejected']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidInvestmentRecord(data) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'userId', 'productId', 'vipLevel',
+          'amountInvested', 'dailyIncome', 'cycleDays', 'daysRemaining',
+          'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'userId', 'productId', 'vipLevel',
+          'amountInvested', 'dailyIncome', 'cycleDays', 'daysRemaining',
+          'status', 'productName', 'totalIncomeEarned', 'datePurchased',
+          'lastClaimAt', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && isValidId(data.userId)
+        && data.productId is string && data.productId.size() >= 1 && data.productId.size() <= 64
+        && data.vipLevel is int && data.vipLevel >= 0 && data.vipLevel <= 10
+        && data.amountInvested is number && data.amountInvested >= 0
+        && data.dailyIncome is number && data.dailyIncome >= 0
+        && data.cycleDays is int && data.cycleDays >= 1 && data.cycleDays <= 365
+        && data.daysRemaining is int && data.daysRemaining >= 0 && data.daysRemaining <= 365
+        && data.status is string && data.status in ['active', 'completed']
+        && (!('productName' in data) || (data.productName is string && data.productName.size() <= 128))
+        && (!('totalIncomeEarned' in data) || (data.totalIncomeEarned is number && data.totalIncomeEarned >= 0))
+        && (!('datePurchased' in data) || (data.datePurchased is string && data.datePurchased.size() <= 32))
+        && (!('lastClaimAt' in data) || data.lastClaimAt is int)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidRedemptionCode(data) {
+      return data.keys().hasAll(['id', 'code', 'amount', 'usedCount', 'isActive', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'code', 'amount', 'maxUses', 'usedCount', 'isActive', 'descriptionRw', 'descriptionEn', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.code is string && data.code.size() >= 3 && data.code.size() <= 32
+        && data.amount is number && data.amount > 0
+        && (!('maxUses' in data) || (data.maxUses is int && data.maxUses > 0))
+        && data.usedCount is int && data.usedCount >= 0
+        && data.isActive is bool
+        && (!('descriptionRw' in data) || (data.descriptionRw is string && data.descriptionRw.size() <= 200))
+        && (!('descriptionEn' in data) || (data.descriptionEn is string && data.descriptionEn.size() <= 200))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminSettings(data) {
+      return data.keys().hasAll([
+          'mtnNumber', 'airtelNumber', 'minDeposit',
+          'minWithdrawal', 'withdrawalFeePercent', 'broadcastMessage',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'mtnNumber', 'airtelNumber', 'mtnName', 'airtelName',
+          'minDeposit', 'minWithdrawal', 'withdrawalFeePercent',
+          'broadcastMessage', 'telegramGroup', 'telegramSupport',
+          'telegramChannel', 'whatsappSupport',
+          'createdAt', 'updatedAt'
+        ])
+        && data.mtnNumber is string && data.mtnNumber.size() >= 9 && data.mtnNumber.size() <= 24
+        && data.airtelNumber is string && data.airtelNumber.size() >= 9 && data.airtelNumber.size() <= 24
+        && data.minDeposit is number && data.minDeposit >= 100
+        && data.minWithdrawal is number && data.minWithdrawal >= 100
+        && data.withdrawalFeePercent is number && data.withdrawalFeePercent >= 0 && data.withdrawalFeePercent <= 100
+        && data.broadcastMessage is string && data.broadcastMessage.size() <= 500
+        && (!('mtnName' in data) || (data.mtnName is string && data.mtnName.size() <= 80))
+        && (!('airtelName' in data) || (data.airtelName is string && data.airtelName.size() <= 80))
+        && (!('telegramGroup' in data) || (data.telegramGroup is string && data.telegramGroup.size() <= 160))
+        && (!('telegramSupport' in data) || (data.telegramSupport is string && data.telegramSupport.size() <= 160))
+        && (!('telegramChannel' in data) || (data.telegramChannel is string && data.telegramChannel.size() <= 160))
+        && (!('whatsappSupport' in data) || (data.whatsappSupport is string && data.whatsappSupport.size() <= 160))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTransactionRecord(data) {
+      return data.keys().hasAll([
+          'id', 'ownerUid', 'userId', 'type', 'amount', 'status', 'description',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerUid', 'userId', 'requestId', 'type', 'amount', 'status',
+          'timestampText', 'description', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && isValidId(data.userId)
+        && (!('requestId' in data) || (data.requestId is string && data.requestId.size() <= 128))
+        && data.type is string && data.type.size() >= 1 && data.type.size() <= 32
+        && data.amount is number && data.amount >= 0
+        && data.status is string && data.status in ['completed', 'pending', 'rejected']
+        && (!('timestampText' in data) || (data.timestampText is string && data.timestampText.size() <= 64))
+        && data.description is string && data.description.size() <= 240
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // 1. Admins Registry
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if isAdminEmail();
+      allow create: if isAdminEmail()
+        && isValidId(adminId)
+        && isValidAdminMember(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdminEmail()
+        && isValidId(adminId)
+        && isValidAdminMember(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // 2. Users (PII Isolated - Only Owner or Admin)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(existing().ownerUid) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdminEmail());
+      allow create: if isSignedIn()
+        && isValidId(userId)
+        && isValidUserAccount(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() || (
+            incoming().ownerUid == request.auth.uid
+            && incoming().isAdmin == false
+            && incoming().vipLevel == 0
+            && incoming().balance == 0
+            && incoming().totalIncome == 0
+            && incoming().totalWithdrawn == 0
+            && incoming().totalRecharged == 0
+          )
+        );
+      allow update: if isSignedIn()
+        && isValidId(userId)
+        && isValidUserAccount(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() || (
+            isOwner(existing().ownerUid)
+            && incoming().ownerUid == existing().ownerUid
+            && incoming().isAdmin == existing().isAdmin
+            && incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'referredBy', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // 3. Recharges (Terminal State Locked)
+    match /recharges/{rechargeId} {
+      allow get: if isSignedIn() && isValidId(rechargeId) && (isOwner(existing().ownerUid) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdminEmail());
+      allow create: if isSignedIn()
+        && isValidId(rechargeId)
+        && isValidRechargeRequest(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() || (
+            incoming().ownerUid == request.auth.uid
+            && incoming().status == 'pending'
+          )
+        );
+      allow update: if isSignedIn()
+        && isValidId(rechargeId)
+        && isValidRechargeRequest(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && (
+          existing().status == 'pending'
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'note', 'updatedAt'])
+        );
+      allow delete: if isAdmin() && isValidId(rechargeId);
+    }
+
+    // 4. Withdrawals (Terminal State Locked)
+    match /withdrawals/{withdrawId} {
+      allow get: if isSignedIn() && isValidId(withdrawId) && (isOwner(existing().ownerUid) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdminEmail());
+      allow create: if isSignedIn()
+        && isValidId(withdrawId)
+        && isValidWithdrawRequest(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() || (
+            incoming().ownerUid == request.auth.uid
+            && incoming().status == 'pending'
+          )
+        );
+      allow update: if isSignedIn()
+        && isValidId(withdrawId)
+        && isValidWithdrawRequest(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && (
+          existing().status == 'pending'
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+        );
+      allow delete: if isAdmin() && isValidId(withdrawId);
+    }
+
+    // 5. Investments
+    match /investments/{investmentId} {
+      allow get: if isSignedIn() && isValidId(investmentId) && (isOwner(existing().ownerUid) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdminEmail());
+      allow create: if isSignedIn()
+        && isValidId(investmentId)
+        && isValidInvestmentRecord(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (isAdmin() || incoming().ownerUid == request.auth.uid);
+      allow update: if isSignedIn()
+        && isValidId(investmentId)
+        && isValidInvestmentRecord(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() || (
+            isOwner(existing().ownerUid)
+            && existing().status == 'active'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['lastClaimAt', 'daysRemaining', 'status', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(investmentId);
+    }
+
+    // 6. Redemption Codes
+    match /redemptionCodes/{codeId} {
+      allow get: if isSignedIn() && isValidId(codeId);
+      allow list: if isAdminEmail();
+      allow create: if isAdmin()
+        && isValidId(codeId)
+        && isValidRedemptionCode(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(codeId)
+        && isValidRedemptionCode(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['isActive', 'usedCount', 'maxUses', 'amount', 'descriptionRw', 'descriptionEn', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(codeId);
+    }
+
+    // 7. Admin Settings
+    match /settings/{settingId} {
+      allow get: if isSignedIn() && isValidId(settingId);
+      allow list: if isAdminEmail();
+      allow create: if isAdmin()
+        && isValidId(settingId)
+        && isValidAdminSettings(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(settingId)
+        && isValidAdminSettings(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'mtnNumber', 'airtelNumber', 'mtnName', 'airtelName',
+          'minDeposit', 'minWithdrawal', 'withdrawalFeePercent',
+          'broadcastMessage', 'telegramGroup', 'telegramSupport',
+          'telegramChannel', 'whatsappSupport', 'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    // 8. Transactions Ledger
+    match /transactions/{transactionId} {
+      allow get: if isSignedIn() && isValidId(transactionId) && (isOwner(existing().ownerUid) || isAdmin());
+      allow list: if isSignedIn() && (existing().ownerUid == request.auth.uid || isAdminEmail());
+      allow create: if isSignedIn()
+        && isValidId(transactionId)
+        && isValidTransactionRecord(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (isAdmin() || incoming().ownerUid == request.auth.uid);
+      allow update: if isSignedIn()
+        && isValidId(transactionId)
+        && isValidTransactionRecord(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(transactionId);
+    }
+
+    // 9. Test Connection Document
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+  }
+}
